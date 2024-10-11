@@ -20,7 +20,15 @@ class JavaType(object):
 
         Subclasses must override this.
         """
-        raise NotImplementedError(type(self).__name__ + " must override is_subtype_of()")
+        if self == other:
+            return True
+        if isinstance(self, JavaObjectType):
+            if other in self.direct_supertypes:
+                return True
+            for supertype in self.direct_supertypes:
+                if supertype.is_subtype_of(other):
+                    return True;
+        return False
 
     def is_supertype_of(self, other):
         """Convenience counterpart to is_subtype_of().

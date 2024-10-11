@@ -15,7 +15,7 @@ class JavaExpression(object):
 
         Subclasses must override this method.
         """
-        raise NotImplementedError(type(self).__name__ + " must override static_type()")
+        return self.declared_type
 
     def check_types(self):
         """Examines the structure of this expression for static type errors.
@@ -35,6 +35,9 @@ class JavaVariable(JavaExpression):
     after the initial construction of the AST. In this sample project, however, we simply specify
     the declared_type for every variable reference.
     """
+    def check_types(self):
+        pass
+
     def __init__(self, name, declared_type):
         self.name = name                    #: The name of the variable (str)
         self.declared_type = declared_type  #: The declared type of the variable (JavaType)
@@ -46,6 +49,9 @@ class JavaLiteral(JavaExpression):
     def __init__(self, value, type):
         self.value = value  #: The literal value, as a string
         self.type = type    #: The type of the literal (JavaType)
+    
+    def static_type(self):
+        return self.type
 
 
 class JavaNullLiteral(JavaLiteral):
@@ -56,6 +62,15 @@ class JavaNullLiteral(JavaLiteral):
 
 
 class JavaAssignment(JavaExpression):
+
+    def check_types(self):
+        right_side = self.rhs.static_type()
+        left_side = self.lhs.static_type()
+        if not right_side.is_subtype_of(left_side):
+            raise JavaTypeMismatchError("Cannot assign")
+        
+    def static_type(self):
+        return self.lhs.static_type()
     """The assignment of a new value to a variable.
 
     Attributes:
@@ -68,6 +83,7 @@ class JavaAssignment(JavaExpression):
 
 
 class JavaMethodCall(JavaExpression):
+
     """A Java method invocation.
 
     For example, in this Java code::
@@ -83,10 +99,11 @@ class JavaMethodCall(JavaExpression):
         method_name (String): The name of the method to call
         args (list of Expressions): The arguments to pass to the method
     """
+
     def __init__(self, receiver, method_name, *args):
         self.receiver = receiver
         self.method_name = method_name
-        self.args = args
+        self.args = args 
 
 
 class JavaConstructorCall(JavaExpression):
@@ -104,6 +121,10 @@ class JavaConstructorCall(JavaExpression):
         instantiated_type (JavaType): The type to instantiate
         args (list of Expressions): Constructor arguments
     """
+
+    def static_type(self):
+        return self.instantiated_type
+    
     def __init__(self, instantiated_type, *args):
         self.instantiated_type = instantiated_type
         self.args = args
